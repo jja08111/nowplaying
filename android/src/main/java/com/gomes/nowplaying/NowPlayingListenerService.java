@@ -8,6 +8,7 @@ import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +38,7 @@ public class NowPlayingListenerService extends NotificationListenerService {
     public static final String ACTION_POSTED = "posted";
     public static final String ACTION_REMOVED = "removed";
 
-    private Map<String, MediaSession.Token> tokens = new HashMap<>();
+    private final Map<String, MediaSession.Token> tokens = new HashMap<>();
 
     @Override
     public void onListenerConnected() {
@@ -100,7 +101,7 @@ public class NowPlayingListenerService extends NotificationListenerService {
         return (MediaSession.Token) bundle.getParcelable("android.mediaSession");
     }
 
-    private class SbnAndToken {
+    private static class SbnAndToken {
         protected final StatusBarNotification sbn;
         protected final MediaSession.Token token;
 
