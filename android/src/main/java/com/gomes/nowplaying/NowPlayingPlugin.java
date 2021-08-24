@@ -185,7 +185,6 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
 
     // back out now if we're not interested in this state
     if (state == STATE_UNKNOWN) return null;
-    if (state == STATE_PAUSED && lastId != null && !id.equals(lastId)) return null;
     if (state == STATE_STOPPED && !id.equals(lastId)) return null;
 
     final Map<String, Object> data = new HashMap<>();
