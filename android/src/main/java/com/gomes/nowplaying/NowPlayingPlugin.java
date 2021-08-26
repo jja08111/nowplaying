@@ -13,6 +13,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.VectorDrawable;
 import android.graphics.drawable.Icon;
+import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
@@ -65,6 +66,11 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     if (COMMAND_TRACK.equals(call.method)) {
+      AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+      if (audioManager.isMusicActive() && NowPlayingListenerService.lastToken != null && NowPlayingListenerService.lastIcon != null) {
+        final Map<String, Object> data = extractFieldsFor(NowPlayingListenerService.lastToken, NowPlayingListenerService.lastIcon);
+        if (data != null) sendTrack(data);
+      }
       result.success(trackData);
     } else if (COMMAND_ENABLED.equals(call.method)) {
       final boolean isEnabled = isNotificationListenerServiceEnabled();

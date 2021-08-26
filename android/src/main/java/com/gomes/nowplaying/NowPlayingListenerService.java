@@ -2,6 +2,7 @@ package com.gomes.nowplaying;
 
 import android.app.Notification;
 import android.content.Intent;
+import android.graphics.drawable.Icon;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
@@ -40,6 +41,9 @@ public class NowPlayingListenerService extends NotificationListenerService {
 
     private final Map<String, MediaSession.Token> tokens = new HashMap<>();
 
+    public static MediaSession.Token lastToken;
+    public static Icon lastIcon;
+
     @Override
     public void onListenerConnected() {
         super.onListenerConnected();
@@ -77,6 +81,9 @@ public class NowPlayingListenerService extends NotificationListenerService {
         if (token != null) {
             tokens.put(sbn.getKey(), token);
             sendData(token, sbn, ACTION_POSTED);
+
+            NowPlayingListenerService.lastToken = token;
+            NowPlayingListenerService.lastIcon = sbn.getNotification().getSmallIcon();
         }
     }
 
