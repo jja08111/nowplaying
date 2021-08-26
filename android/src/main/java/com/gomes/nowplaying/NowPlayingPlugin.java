@@ -87,13 +87,13 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
         result.success(true);
         break;
       case COMMAND_PLAY_OR_PAUSE:
-        new NowPlayingController(context).playOrPause();
+        new NowPlayingController(context).playOrPause(result);
         break;
       case COMMAND_SKIP_TO_PREVIOUS:
-        new NowPlayingController(context).skipToPrevious();
+        new NowPlayingController(context).skipToPrevious(result);
         break;
       case COMMAND_SKIP_TO_NEXT:
-        new NowPlayingController(context).skipToNext();
+        new NowPlayingController(context).skipToNext(result);
         break;
       default:
         result.notImplemented();
