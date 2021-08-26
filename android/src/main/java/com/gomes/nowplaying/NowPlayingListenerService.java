@@ -51,6 +51,9 @@ public class NowPlayingListenerService extends NotificationListenerService {
         if (sbnAndToken != null) {
             tokens.put(sbnAndToken.sbn.getKey(), sbnAndToken.token);
             sendData(sbnAndToken.token, sbnAndToken.sbn, ACTION_POSTED);
+
+            NowPlayingListenerService.lastToken = sbnAndToken.token;
+            NowPlayingListenerService.lastIcon = sbnAndToken.sbn.getNotification().getSmallIcon();
         }
     }
 
