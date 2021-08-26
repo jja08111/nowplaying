@@ -13,7 +13,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.VectorDrawable;
 import android.graphics.drawable.Icon;
-import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
@@ -46,6 +45,9 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   private static final String COMMAND_TRACK = "track";
   private static final String COMMAND_ENABLED = "isEnabled";
   private static final String COMMAND_REQUEST_PERMISSIONS = "requestPermissions";
+  private static final String COMMAND_PLAY_OR_PAUSE = "playOrPause";
+  private static final String COMMAND_SKIP_TO_PREVIOUS = "skipToPrevious";
+  private static final String COMMAND_SKIP_TO_NEXT = "skipToNext";
 
   private static final int STATE_PLAYING = 0;
   private static final int STATE_PAUSED = 1;
@@ -65,22 +67,36 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (COMMAND_TRACK.equals(call.method)) {
-      AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-      if (audioManager.isMusicActive() && NowPlayingListenerService.lastToken != null && NowPlayingListenerService.lastIcon != null) {
-        final Map<String, Object> data = extractFieldsFor(NowPlayingListenerService.lastToken, NowPlayingListenerService.lastIcon);
-        if (data != null) sendTrack(data);
-      }
-      result.success(trackData);
-    } else if (COMMAND_ENABLED.equals(call.method)) {
-      final boolean isEnabled = isNotificationListenerServiceEnabled();
-      result.success(isEnabled);
-    } else if (COMMAND_REQUEST_PERMISSIONS.equals(call.method)) {
-      final boolean isEnabled = isNotificationListenerServiceEnabled();
-      if (!isEnabled) context.startActivity(new Intent(ACTION_NOTIFICATION_LISTENER_SETTINGS));
-      result.success(true);
-    } else {
-      result.notImplemented();
+    boolean isEnabled;
+
+    switch (call.method) {
+      case COMMAND_TRACK:
+        if (NowPlayingListenerService.lastToken != null && NowPlayingListenerService.lastIcon != null) {
+          final Map<String, Object> data = extractFieldsFor(NowPlayingListenerService.lastToken, NowPlayingListenerService.lastIcon);
+          if (data != null) sendTrack(data);
+        }
+        result.success(trackData);
+        break;
+      case COMMAND_ENABLED:
+        isEnabled = isNotificationListenerServiceEnabled();
+        result.success(isEnabled);
+        break;
+      case COMMAND_REQUEST_PERMISSIONS:
+        isEnabled = isNotificationListenerServiceEnabled();
+        if (!isEnabled) context.startActivity(new Intent(ACTION_NOTIFICATION_LISTENER_SETTINGS));
+        result.success(true);
+        break;
+      case COMMAND_PLAY_OR_PAUSE:
+        new NowPlayingController(context).playOrPause();
+        break;
+      case COMMAND_SKIP_TO_PREVIOUS:
+        new NowPlayingController(context).skipToPrevious();
+        break;
+      case COMMAND_SKIP_TO_NEXT:
+        new NowPlayingController(context).skipToNext();
+        break;
+      default:
+        result.notImplemented();
     }
   }
 

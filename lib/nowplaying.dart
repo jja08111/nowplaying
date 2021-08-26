@@ -126,6 +126,18 @@ class NowPlaying with WidgetsBindingObserver {
     }
     return true;
   }
+
+  Future<void> playOrPause() async {
+    await _channel.invokeMethod('playOrPause');
+  }
+
+  Future<void> skipToPrevious() async {
+    await _channel.invokeMethod('skipToPrevious');
+  }
+
+  Future<void> skipToNext() async {
+    await _channel.invokeMethod('skipToNext');
+  }
   // /Android
 
   // iOS
