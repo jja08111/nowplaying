@@ -18,6 +18,8 @@ import 'package:path_provider/path_provider.dart';
 bool get isIOS => !kIsWeb && Platform.isIOS;
 bool get isAndroid => !kIsWeb && Platform.isAndroid;
 
+typedef LyricsSearchingCallback = Future<String> Function(String, String);
+
 /// A container for the service. Connects with the underlying OS via a method
 /// channel to pull out track data.
 class NowPlaying with WidgetsBindingObserver {
@@ -36,11 +38,15 @@ class NowPlaying with WidgetsBindingObserver {
   NowPlayingTrack track = NowPlayingTrack.notPlaying;
   bool _resolveImages = false;
 
+  late LyricsSearchingCallback _searchLyrics;
+
   /// Starts the service.
   ///
   /// Initialises stream, sets up the app lifecycle observer, starts a polling
   /// timer on iOS, sets incoming method handler for Android
-  Future<void> start({bool resolveImages = false, NowPlayingImageResolver? resolver}) async {
+  Future<void> start(LyricsSearchingCallback searchLyrics,
+      {bool resolveImages = false, NowPlayingImageResolver? resolver}) async {
+    this._searchLyrics = searchLyrics;
     // async, but should not be awaited
     this._resolveImages = resolver != null || resolveImages;
     this._resolver = resolver ?? DefaultNowPlayingImageResolver();
@@ -120,11 +126,20 @@ class NowPlaying with WidgetsBindingObserver {
 
   // Android
   Future<dynamic> _handler(MethodCall call) async {
-    if (call.method == 'track') {
-      final data = Map<String, Object?>.from(call.arguments[0] ?? {});
-      _updateAndNotifyFor(NowPlayingTrack.fromJson(data));
+    switch(call.method) {
+      case 'track':
+        final data = Map<String, Object?>.from(call.arguments[0] ?? {});
+        final track = NowPlayingTrack.fromJson(data);
+        _updateAndNotifyFor(track);
+        break;
+      case 'updateLyrics':
+        final title = call.arguments[0] as String?;
+        final artist = call.arguments[1] as String?;
+        if(title == null || artist == null) return '';
+        return _searchLyrics(title, artist);
+      default:
+        return true;
     }
-    return true;
   }
 
   Future<void> playOrPause() async {
@@ -137,6 +152,13 @@ class NowPlaying with WidgetsBindingObserver {
 
   Future<void> skipToNext() async {
     await _channel.invokeMethod('skipToNext');
+  }
+
+  // TODO(민성): IOS 구현
+  // TODO(민성): 포어그라운드 실행
+  // TODO(민성): 시스템 홈으로 이동하기
+  Future<bool?> startWindowService() async {
+    return _channel.invokeMethod<bool>("showWindow");
   }
   // /Android
 

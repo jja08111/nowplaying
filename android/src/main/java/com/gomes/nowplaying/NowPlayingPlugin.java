@@ -19,6 +19,7 @@ import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.provider.Settings;
 import android.text.TextUtils;
+
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -26,6 +27,7 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
+
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +44,7 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   private static final String ACTION_NOTIFICATION_LISTENER_SETTINGS =
     "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS";
 
+  private static final String COMMAND_SHOW_WINDOW = "showWindow";
   private static final String COMMAND_TRACK = "track";
   private static final String COMMAND_ENABLED = "isEnabled";
   private static final String COMMAND_REQUEST_PERMISSIONS = "requestPermissions";
@@ -70,6 +73,10 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
     boolean isEnabled;
 
     switch (call.method) {
+      case COMMAND_SHOW_WINDOW:
+        context.startService(new Intent(context, FloatingWindowService.class));
+        result.success(true);
+        break;
       case COMMAND_TRACK:
         if (NowPlayingListenerService.lastToken != null && NowPlayingListenerService.lastIcon != null) {
           final Map<String, Object> data = extractFieldsFor(NowPlayingListenerService.lastToken, NowPlayingListenerService.lastIcon);
@@ -165,7 +172,10 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
 
         if (NowPlayingListenerService.ACTION_POSTED.equals(action)) {
           final Map<String, Object> data = extractFieldsFor(token, icon);
-          if (data != null) sendTrack(data);
+          if (data != null) {
+            sendTrack(data);
+            FloatingWindowService.startFloatingService(channel, context, data);
+          }
         } else if (NowPlayingListenerService.ACTION_REMOVED.equals(action)) {
           finishPlaying(token);
         }
