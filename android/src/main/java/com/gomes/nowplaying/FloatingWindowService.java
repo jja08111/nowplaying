@@ -24,10 +24,8 @@ import androidx.core.app.NotificationCompat;
 import com.gomes.NowPlaying.R;
 
 import java.util.ArrayList;
-import java.util.Map;
 
 import io.flutter.Log;
-import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 
 public class FloatingWindowService extends Service implements View.OnClickListener {
@@ -338,46 +336,40 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     }
 
     // TODO(민성): SharedPreference 에서 플로팅을 사용하기로 한 경우만 띄우도록 하기
-    public static void startFloatingService(MethodChannel channel, Context context, Map<String, Object> data) {
-        final String title = (String) data.get("title");
+    public static void startFloatingService(Context context, boolean forceStart) {
+        final String title = (String) NowPlayingPlugin.trackData.get("title");
         if (title == null || title.isEmpty()) return;
 
-        final String artist = (String) data.get("artist");
+        final String artist = (String) NowPlayingPlugin.trackData.get("artist");
         if (artist == null || artist.isEmpty()) return;
 
-        SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
-        final String currentTitle = prefs.getString(TITLE_KEY, "");
-        final String currentArtist = prefs.getString(ARTIST_KEY, "");
+        if (!forceStart) {
+            SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
+            final String currentTitle = prefs.getString(TITLE_KEY, "");
+            final String currentArtist = prefs.getString(ARTIST_KEY, "");
 
-        if (currentTitle.equals(title) && currentArtist.equals(artist))
-            return;
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString(TITLE_KEY, title);
+            editor.putString(ARTIST_KEY, artist);
+            editor.apply();
 
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(TITLE_KEY, title);
-        editor.putString(ARTIST_KEY, artist);
-        editor.apply();
+            if (currentTitle.equals(title) && currentArtist.equals(artist))
+                return;
+        }
 
-        invokeMethod(channel, context);
+        invokeMethod(context, title, artist);
     }
 
-    public static void startFloatingService(BinaryMessenger messenger, Context context) {
-        invokeMethod(new MethodChannel(messenger, "gomes.com.es/nowplaying"), context);
-    }
-
-    private static void invokeMethod(MethodChannel channel, Context context) {
+    private static void invokeMethod(Context context, String title, String artist) {
         SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
-
-        final String title = prefs.getString(TITLE_KEY, "");
-        final String artist = prefs.getString(ARTIST_KEY, "");
         final boolean isAppVisible = prefs.getBoolean(IS_APP_VISIBLE_KEY, true);
-
-        if (title.isEmpty() || artist.isEmpty() || isAppVisible) return;
+        if (isAppVisible) return;
 
         ArrayList<Object> arguments = new ArrayList<>();
         arguments.add(title);
         arguments.add(artist);
 
-        channel.invokeMethod("updateLyrics", arguments, new MethodChannel.Result() {
+        NowPlayingPlugin.channel.invokeMethod("updateLyrics", arguments, new MethodChannel.Result() {
             @Override
             public void success(Object o) {
                 SharedPreferences prefs = context.getSharedPreferences(FloatingWindowService.SHARED_PREFS_KEY, Context.MODE_PRIVATE);

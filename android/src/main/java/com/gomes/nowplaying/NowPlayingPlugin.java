@@ -40,11 +40,10 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   public static final String ACTION = "com.gomes.nowplaying";
 
   private static final String ENABLED_NOTIFICATION_LISTENERS =
-    "enabled_notification_listeners";
+          "enabled_notification_listeners";
   private static final String ACTION_NOTIFICATION_LISTENER_SETTINGS =
-    "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS";
+          "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS";
 
-  private static final String COMMAND_SHOW_WINDOW = "showWindow";
   private static final String COMMAND_TRACK = "track";
   private static final String COMMAND_ENABLED = "isEnabled";
   private static final String COMMAND_REQUEST_PERMISSIONS = "requestPermissions";
@@ -63,20 +62,16 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   /// This local reference serves to register the plugin with the Flutter Engine
   /// and unregister it
   /// when the Flutter Engine is detached from the Activity
-  private MethodChannel channel;
+  public static MethodChannel channel;
+  public static Map<String, Object> trackData = new HashMap<>();
   private ChangeBroadcastReceiver changeBroadcastReceiver;
   private Context context;
-  private Map<String, Object> trackData = new HashMap<>();
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     boolean isEnabled;
 
     switch (call.method) {
-      case COMMAND_SHOW_WINDOW:
-        context.startService(new Intent(context, FloatingWindowService.class));
-        result.success(true);
-        break;
       case COMMAND_TRACK:
         if (NowPlayingListenerService.lastToken != null && NowPlayingListenerService.lastIcon != null) {
           final Map<String, Object> data = extractFieldsFor(NowPlayingListenerService.lastToken, NowPlayingListenerService.lastIcon);
@@ -108,12 +103,12 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   }
 
   @Override
-  public void onAttachedToActivity(ActivityPluginBinding binding) {
+  public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
     attach(binding);
   }
 
   @Override
-  public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
+  public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
     attach(binding);
   }
 
@@ -147,8 +142,8 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
     final String flat = Settings.Secure.getString(context.getContentResolver(), ENABLED_NOTIFICATION_LISTENERS);
     if (!TextUtils.isEmpty(flat)) {
       final String[] names = flat.split(":");
-      for (int i = 0; i < names.length; i++) {
-        final ComponentName cn = ComponentName.unflattenFromString(names[i]);
+      for (String name : names) {
+        final ComponentName cn = ComponentName.unflattenFromString(name);
         if (cn != null && TextUtils.equals(pkgName, cn.getPackageName())) return true;
       }
     }
@@ -166,15 +161,14 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
     public void onReceive(Context context, Intent intent) {
       if (context != null) {
         final String action = intent.getStringExtra(NowPlayingListenerService.FIELD_ACTION);
-        final Icon icon = (Icon) intent.getParcelableExtra(NowPlayingListenerService.FIELD_ICON);
-        final MediaSession.Token token =
-          (MediaSession.Token) intent.getParcelableExtra(NowPlayingListenerService.FIELD_TOKEN);
+        final Icon icon = intent.getParcelableExtra(NowPlayingListenerService.FIELD_ICON);
+        final MediaSession.Token token = intent.getParcelableExtra(NowPlayingListenerService.FIELD_TOKEN);
 
         if (NowPlayingListenerService.ACTION_POSTED.equals(action)) {
           final Map<String, Object> data = extractFieldsFor(token, icon);
           if (data != null) {
             sendTrack(data);
-            FloatingWindowService.startFloatingService(channel, context, data);
+            FloatingWindowService.startFloatingService(context, false);
           }
         } else if (NowPlayingListenerService.ACTION_REMOVED.equals(action)) {
           finishPlaying(token);
@@ -195,7 +189,7 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   }
 
   private void sendTrack(Map<String, Object> data) {
-    if (data == null) trackData.clear(); else trackData = data;
+    if (data != null) trackData = data;
 
     ArrayList<Object> arguments = new ArrayList<>();
     arguments.add(data);
@@ -237,8 +231,8 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
 
       data.put("sourceIcon", convertIcon(icon));
 
-      byte[] image = extractBitmap((Bitmap) mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART));
-      if (image == null) image = extractBitmap((Bitmap) mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART));
+      byte[] image = extractBitmap(mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART));
+      if (image == null) image = extractBitmap(mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART));
       if (image != null) {
         data.put("image", image);
       } else {

@@ -153,13 +153,6 @@ class NowPlaying with WidgetsBindingObserver {
   Future<void> skipToNext() async {
     await _channel.invokeMethod('skipToNext');
   }
-
-  // TODO(민성): IOS 구현
-  // TODO(민성): 포어그라운드 실행
-  // TODO(민성): 시스템 홈으로 이동하기
-  Future<bool?> startWindowService() async {
-    return _channel.invokeMethod<bool>("showWindow");
-  }
   // /Android
 
   // iOS
