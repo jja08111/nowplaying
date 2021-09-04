@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -266,7 +267,9 @@ public class FloatingWindowService extends Service implements View.OnClickListen
                 SharedPreferences prefs = context.getSharedPreferences(FloatingWindowService.SHARED_PREFS_KEY, Context.MODE_PRIVATE);
                 prefs.edit().putString(FloatingWindowService.LYRICS_KEY, o.toString()).apply();
 
-                context.startService(new Intent(context, FloatingWindowService.class));
+                // System overlay 권한이 허용된 경우만 서비스 실행
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context))
+                    context.startService(new Intent(context, FloatingWindowService.class));
             }
 
             @Override
