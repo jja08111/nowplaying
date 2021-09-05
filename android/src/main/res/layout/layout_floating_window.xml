@@ -29,17 +29,10 @@
                 android:id="@+id/collapsed_close_button"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:tint="#D1D1D1"
-                android:background="@null"
-                android:src="@drawable/ic_close" />
-            <ImageButton
-                android:id="@+id/collapsed_expand_button"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
                 android:layout_marginStart="70dp"
                 android:tint="#D1D1D1"
                 android:background="@null"
-                android:src="@drawable/ic_expand" />
+                android:src="@drawable/ic_close" />
         </RelativeLayout>
 
         <!-- this is the expanded layout -->
@@ -49,7 +42,7 @@
             android:layout_gravity="center"
             android:layout_width="match_parent"
             android:layout_height="266dp"
-            card_view:cardBackgroundColor="#F5FFFFFF"
+            card_view:cardBackgroundColor="#FFFFFF"
             card_view:cardCornerRadius="20dp"
             android:layout_margin="4dp"
             android:visibility="visible"
@@ -60,42 +53,54 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:baselineAligned="false">
+
                 <LinearLayout
-                    android:layout_weight="0"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-                    <ImageButton
-                        android:id="@+id/expanded_close_button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:src="@drawable/ic_close"
-                        android:alpha="0.54"
-                        android:tint="#FF000000"
-                        android:background="@null"
-                        android:contentDescription="Close window">
-                    </ImageButton>
-                    <ImageButton
-                        android:id="@+id/expanded_fullscreen_button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:src="@drawable/ic_fullscreen"
-                        android:tint="#FF000000"
-                        android:background="@null"
-                        android:contentDescription="Expand to app">
-                    </ImageButton>
-                    <ImageButton
-                        android:id="@+id/expanded_collapse_button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:src="@drawable/ic_close_fullscreen"
-                        android:tint="#FF000000"
-                        android:background="@null"
-                        android:contentDescription="Collapse window">
-                    </ImageButton>
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <LinearLayout
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <ImageButton
+                            android:id="@+id/expanded_close_button"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="4dp"
+                            android:src="@drawable/ic_close"
+                            android:alpha="0.54"
+                            android:tint="#FF000000"
+                            android:background="@null"
+                            android:contentDescription="Close window">
+                        </ImageButton>
+                        <ImageButton
+                            android:id="@+id/expanded_fullscreen_button"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="4dp"
+                            android:src="@drawable/ic_fullscreen"
+                            android:tint="#FF000000"
+                            android:background="@null"
+                            android:contentDescription="Expand to app">
+                        </ImageButton>
+                        <ImageButton
+                            android:id="@+id/expanded_collapse_button"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="4dp"
+                            android:src="@drawable/ic_close_fullscreen"
+                            android:tint="#FF000000"
+                            android:background="@null"
+                            android:contentDescription="Collapse window">
+                        </ImageButton>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_weight="0"
+                        android:id="@+id/expanded_icon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_margin="10dp" />
                 </LinearLayout>
 
                 <View

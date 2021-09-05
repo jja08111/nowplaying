@@ -9,14 +9,22 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.util.Size;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
@@ -161,6 +169,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
             createWindowView();
         } else {
             setLyricsTextView();
+            setCoverImage();
         }
         return START_STICKY;
     }
@@ -186,8 +195,6 @@ public class FloatingWindowService extends Service implements View.OnClickListen
             startApp();
         } else if (viewId == R.id.expanded_collapse_button) {//switching views
             switchToBubble();
-        } else if (viewId == R.id.collapsed_expand_button) {
-            switchToWindow();
         }
     }
 
@@ -239,6 +246,25 @@ public class FloatingWindowService extends Service implements View.OnClickListen
         if (!lyrics.isEmpty()) textView.setText(lyrics);
     }
 
+    private void setCoverImage() {
+        byte[] bytes = (byte[]) NowPlayingPlugin.trackData.get("image");
+
+        if (bytes != null) {
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            if (bitmap != null) {
+                ImageView collapsedImageView = mFloatingView.findViewById(R.id.collapsed_icon);
+                collapsedImageView.setImageBitmap(bitmap);
+                collapsedImageView.setBackground(new ShapeDrawable(new OvalShape()));
+                collapsedImageView.setClipToOutline(true);
+
+                ImageView expandedImageView = mFloatingView.findViewById(R.id.expanded_icon);
+                expandedImageView.setImageBitmap(bitmap);
+                expandedImageView.setBackground(new ShapeDrawable(new OvalShape()));
+                expandedImageView.setClipToOutline(true);
+            }
+        }
+    }
+
     private void createWindowView() {
         startForegroundService(true);
 
@@ -260,6 +286,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
         mWindowManager.addView(mFloatingView, params);
 
         setLyricsTextView();
+        setCoverImage();
 
         // getting the collapsed and expanded view from the floating view
         collapsedView = mFloatingView.findViewById(R.id.layoutCollapsed);
@@ -281,14 +308,13 @@ public class FloatingWindowService extends Service implements View.OnClickListen
 
         // 클릭 리스너 추가
         mFloatingView.findViewById(R.id.collapsed_close_button).setOnClickListener(this);
-        mFloatingView.findViewById(R.id.collapsed_expand_button).setOnClickListener(this);
         mFloatingView.findViewById(R.id.expanded_close_button).setOnClickListener(this);
         mFloatingView.findViewById(R.id.expanded_fullscreen_button).setOnClickListener(this);
         mFloatingView.findViewById(R.id.expanded_collapse_button).setOnClickListener(this);
 
         // adding an touch listener to make drag movement of the floating widget
-        collapsedView.setOnTouchListener(getWindowTouchListener(params));
-        expandedView.setOnTouchListener(getWindowTouchListener(params));
+        collapsedView.setOnTouchListener(getWindowTouchListener(params, true));
+        expandedView.setOnTouchListener(getWindowTouchListener(params, false));
     }
 
     private void removeWindowView() {
@@ -306,8 +332,14 @@ public class FloatingWindowService extends Service implements View.OnClickListen
         }
     }
 
-    private View.OnTouchListener getWindowTouchListener(WindowManager.LayoutParams params) {
+    private View.OnTouchListener getWindowTouchListener(WindowManager.LayoutParams params, boolean isBubble) {
+        Display display = mWindowManager.getDefaultDisplay();
+        Point deviceSize = new Point();
+        display.getSize(deviceSize);
+
         return new View.OnTouchListener() {
+            private final Size minSize = new Size(-deviceSize.x / 2, -deviceSize.y / 2);
+            private final Size maxSize = new Size(deviceSize.x / 2, deviceSize.y / 2);
             private int initialX;
             private int initialY;
             private float initialTouchX;
@@ -323,10 +355,26 @@ public class FloatingWindowService extends Service implements View.OnClickListen
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
                         return true;
+                    case MotionEvent.ACTION_UP:
+                        if (isBubble) {
+                            long tapDownTime = event.getDownTime();
+                            long actionTime = event.getEventTime();
+                            if (actionTime - tapDownTime < 300
+                                    && Math.abs(initialTouchX - event.getRawX()) < 10
+                                    && Math.abs(initialTouchY - event.getRawY()) < 10) {
+                                switchToWindow();
+                            }
+                        }
                     case MotionEvent.ACTION_MOVE:
-                        //this code is helping the widget to move around the screen with fingers
-                        params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                        int viewHalfWidth = v.getWidth() / 2;
+                        int viewHalfHeight = v.getHeight() / 2;
+
+                        params.x = Math.max(minSize.getWidth() + viewHalfWidth,
+                                Math.min(maxSize.getWidth() - viewHalfWidth,
+                                        initialX + (int) (event.getRawX() - initialTouchX)));
+                        params.y = Math.max(minSize.getHeight() + viewHalfHeight,
+                                Math.min(maxSize.getHeight() - viewHalfHeight,
+                                        initialY + (int) (event.getRawY() - initialTouchY)));
                         mWindowManager.updateViewLayout(mFloatingView, params);
                         return true;
                 }

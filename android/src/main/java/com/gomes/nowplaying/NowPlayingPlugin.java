@@ -226,20 +226,17 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
     data.put("duration", mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION));
     data.put("position", playbackState.getPosition());
 
-    if (state != STATE_STOPPED && !id.equals(lastId)) {
-      // do the onerous imagey stuff only if we're on a new paused or playing media item
+    // do the onerous imagey stuff only if we're on a new paused or playing media item
+    data.put("sourceIcon", convertIcon(icon));
 
-      data.put("sourceIcon", convertIcon(icon));
-
-      byte[] image = extractBitmap(mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART));
-      if (image == null) image = extractBitmap(mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART));
-      if (image != null) {
-        data.put("image", image);
-      } else {
-        String imageUri = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ART_URI);
-        if (imageUri == null) imageUri = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI);
-        data.put("imageUri", imageUri);
-      }
+    byte[] image = extractBitmap(mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART));
+    if (image == null) image = extractBitmap(mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART));
+    if (image != null) {
+      data.put("image", image);
+    } else {
+      String imageUri = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ART_URI);
+      if (imageUri == null) imageUri = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI);
+      data.put("imageUri", imageUri);
     }
 
     return data;
