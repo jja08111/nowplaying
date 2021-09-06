@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
@@ -19,6 +20,9 @@ import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.provider.Settings;
 import android.text.TextUtils;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
@@ -45,6 +49,7 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
           "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS";
 
   private static final String COMMAND_TRACK = "track";
+  private static final String COMMAND_START = "start";
   private static final String COMMAND_ENABLED = "isEnabled";
   private static final String COMMAND_REQUEST_PERMISSIONS = "requestPermissions";
   private static final String COMMAND_PLAY_OR_PAUSE = "playOrPause";
@@ -72,6 +77,25 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
     boolean isEnabled;
 
     switch (call.method) {
+      case COMMAND_START:
+        Object arguments = call.arguments;
+        try {
+          ArrayList<ArrayList<Long>> list = (ArrayList<ArrayList<Long>>) arguments;
+          long callbackHandle = (long)((ArrayList<Long>) list.get(0)).get(0);
+          long searchLyricCallbackHandle = (long)((ArrayList<Long>) list.get(1)).get(0);
+
+          SharedPreferences prefs = context.getSharedPreferences(FloatingWindowService.SHARED_PREFS_KEY, Context.MODE_PRIVATE);
+          prefs.edit().putLong(FloatingWindowService.SEARCH_CALLBACK_KEY, searchLyricCallbackHandle).apply();
+
+          FloatingWindowService.setCallbackDispatcher(context, callbackHandle);
+          FloatingWindowService.startBackgroundIsolate(context, callbackHandle);
+        } catch (Exception e) {
+          e.printStackTrace();
+          result.success(false);
+          return;
+        }
+        result.success(true);
+        break;
       case COMMAND_TRACK:
         if (NowPlayingListenerService.lastToken != null && NowPlayingListenerService.lastIcon != null) {
           final Map<String, Object> data = extractFieldsFor(NowPlayingListenerService.lastToken, NowPlayingListenerService.lastIcon);

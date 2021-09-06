@@ -31,12 +31,11 @@ import androidx.core.app.NotificationCompat;
 
 import com.gomes.NowPlaying.R;
 
-import java.util.ArrayList;
-
 import io.flutter.Log;
 import io.flutter.plugin.common.MethodChannel;
 
 public class FloatingWindowService extends Service implements View.OnClickListener {
+    private static final String TAG = "FloatingWindowService";
     private static final int NOTIFICATION_ID = 1;
     private static final String EXTRA_NOTIFICATION_ID = "com.example.p_lyric.NotificationAction";
     private static final String ACTION_CREATE_VIEW = "create_view";
@@ -52,8 +51,14 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     }
 
     public static final String SHARED_PREFS_KEY = "com.example.p_lyric.floating.window.service";
+    public static final String SEARCH_CALLBACK_KEY = "searchLyricCallback";
     public static final String IS_APP_VISIBLE_KEY = "isAppVisible";
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
+
+    /**
+     * Background Dart execution context.
+     */
+    private static FlutterBackgroundExecutor flutterBackgroundExecutor;
 
     private WindowManager mWindowManager;
     private View mFloatingView;
@@ -68,6 +73,22 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     @Override
     public void onCreate() {
         createNotificationChannel();
+    }
+
+    /**
+     * Starts the background isolate for the {@link FloatingWindowService}.
+     */
+    public static void startBackgroundIsolate(Context context, long callbackHandle) {
+        if (flutterBackgroundExecutor != null) {
+            Log.w(TAG, "Attempted to start a duplicate background isolate. Returning...");
+            return;
+        }
+        flutterBackgroundExecutor = new FlutterBackgroundExecutor();
+        flutterBackgroundExecutor.startBackgroundIsolate(context, callbackHandle);
+    }
+
+    public static void setCallbackDispatcher(Context context, long callbackHandle) {
+        FlutterBackgroundExecutor.setCallbackDispatcher(context, callbackHandle);
     }
 
     private void createNotificationChannel() {
@@ -413,15 +434,16 @@ public class FloatingWindowService extends Service implements View.OnClickListen
         final boolean isAppVisible = prefs.getBoolean(IS_APP_VISIBLE_KEY, true);
         if (isAppVisible) return;
 
-        ArrayList<Object> arguments = new ArrayList<>();
-        arguments.add(title);
-        arguments.add(artist);
+        long callbackHandle = prefs.getLong(SEARCH_CALLBACK_KEY, 0);
+        if (callbackHandle == 0) return;
 
-        NowPlayingPlugin.channel.invokeMethod("updateLyrics", arguments, new MethodChannel.Result() {
+        MethodChannel.Result result = new MethodChannel.Result() {
             @Override
             public void success(Object o) {
-                SharedPreferences prefs = context.getSharedPreferences(FloatingWindowService.SHARED_PREFS_KEY, Context.MODE_PRIVATE);
-                prefs.edit().putString(FloatingWindowService.LYRICS_KEY, o.toString()).apply();
+                if (o == null) return;
+
+                SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
+                prefs.edit().putString(LYRICS_KEY, o.toString()).apply();
 
                 // System overlay 권한이 허용된 경우만 서비스 실행
                 if (Settings.canDrawOverlays(context))
@@ -435,6 +457,8 @@ public class FloatingWindowService extends Service implements View.OnClickListen
             @Override
             public void notImplemented() {
             }
-        });
+        };
+
+        flutterBackgroundExecutor.executeDartCallbackInBackgroundIsolate(callbackHandle, title, artist, result);
     }
 }
