@@ -116,8 +116,11 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler {
                 break;
             case COMMAND_REQUEST_PERMISSIONS:
                 isEnabled = isNotificationListenerServiceEnabled();
-                if (!isEnabled)
-                    context.startActivity(new Intent(ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                if (!isEnabled) {
+                    Intent intent = new Intent(ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                }
                 result.success(true);
                 break;
             case COMMAND_PLAY_OR_PAUSE:
