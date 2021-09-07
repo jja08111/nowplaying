@@ -110,6 +110,7 @@
                     android:id="@+id/separator1" />
 
                 <ScrollView
+                    android:id="@+id/expanded_scrollView"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
                     android:layout_width="match_parent"

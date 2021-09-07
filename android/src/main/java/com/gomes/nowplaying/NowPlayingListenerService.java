@@ -61,7 +61,9 @@ public class NowPlayingListenerService extends NotificationListenerService {
         SbnAndToken playingToken = null;
         SbnAndToken pausedToken = null;
 
-        for (StatusBarNotification sbn : this.getActiveNotifications()) {
+        StatusBarNotification[] notifications = getActiveNotifications();
+
+        for (StatusBarNotification sbn : notifications) {
             final MediaSession.Token token = getTokenIfAvailable(sbn);
             if (token != null) {
                 final MediaController controller = new MediaController(this, token);
@@ -87,6 +89,8 @@ public class NowPlayingListenerService extends NotificationListenerService {
 
             NowPlayingListenerService.lastToken = token;
             NowPlayingListenerService.lastIcon = sbn.getNotification().getSmallIcon();
+
+            FloatingWindowService.startFloatingService(this);
         }
     }
 
@@ -108,7 +112,7 @@ public class NowPlayingListenerService extends NotificationListenerService {
     private MediaSession.Token getTokenIfAvailable(StatusBarNotification sbn) {
         final Notification notif = sbn.getNotification();
         final Bundle bundle = notif.extras;
-        return (MediaSession.Token) bundle.getParcelable("android.mediaSession");
+        return bundle.getParcelable("android.mediaSession");
     }
 
     private static class SbnAndToken {
