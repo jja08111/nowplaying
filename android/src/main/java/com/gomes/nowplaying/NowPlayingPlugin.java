@@ -142,7 +142,6 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler {
         if (channel != null) {
             return;
         }
-
         context = flutterPluginBinding.getApplicationContext();
         channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "gomes.com.es/nowplaying");
 
@@ -156,8 +155,10 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler {
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
         channel.setMethodCallHandler(null);
-        if (context != null)
+        if (context != null) {
             context.unregisterReceiver(changeBroadcastReceiver);
+        }
+        channel = null;
         changeBroadcastReceiver = null;
     }
 
