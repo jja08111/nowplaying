@@ -420,10 +420,12 @@ public class FloatingWindowService extends Service implements View.OnClickListen
 
     /**
      * 사용자가 명시적으로 닫기 버튼 혹은 서비스 종료 버튼을 눌렀었던 경우 `true`를 반환한다.
+     *
+     * 또한 초기에 값이 설정되지 않은 경우 `true`를 반환한다.
      */
     private static boolean wasWindowRemoved(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
-        return prefs.getBoolean(WAS_WINDOW_REMOVED_KEY, false);
+        return prefs.getBoolean(WAS_WINDOW_REMOVED_KEY, true);
     }
 
     private static void setPreferenceForWindowIsRemoved(Context context, boolean isRemoved) {
