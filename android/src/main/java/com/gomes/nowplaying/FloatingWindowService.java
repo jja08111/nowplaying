@@ -56,6 +56,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     public static final String SHARED_PREFS_KEY = "com.example.p_lyric.floating.window.service";
     public static final String SEARCH_CALLBACK_KEY = "searchLyricCallback";
     public static final String IS_APP_VISIBLE_KEY = "isAppVisible";
+    public static final String WAS_WINDOW_REMOVED_KEY = "wasWindowRemoved";
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
 
     /**
@@ -167,9 +168,13 @@ public class FloatingWindowService extends Service implements View.OnClickListen
 
             switch (action) {
                 case ACTION_CREATE_VIEW:
+                    setPreferenceForWindowIsRemoved(context, false);
+                    // 가사를 받아오는 동안 임시 플로팅 뷰를 먼저 띄운다.
                     context.startService(createOrRemoveIntent);
+                    startFloatingService(context);
                     break;
                 case ACTION_REMOVE_VIEW:
+                    setPreferenceForWindowIsRemoved(context, true);
                     createOrRemoveIntent.putExtra(EXTRA_NOTIFICATION_ID, ACTION_REMOVE_VIEW);
                     context.startService(createOrRemoveIntent);
                     break;
@@ -207,6 +212,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
             mFloatingView = null;
         }
         stopForegroundService();
+        setPreferenceForWindowIsRemoved(this, true);
     }
 
     @Override
@@ -352,6 +358,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
                     mWindowManager.removeView(mFloatingView);
                     mFloatingView = null;
                     startForegroundService(false);
+                    setPreferenceForWindowIsRemoved(this, true);
                 }
             }
             mWindowManager = null;
@@ -411,12 +418,27 @@ public class FloatingWindowService extends Service implements View.OnClickListen
         };
     }
 
+    /**
+     * 사용자가 명시적으로 닫기 버튼 혹은 서비스 종료 버튼을 눌렀었던 경우 `true`를 반환한다.
+     */
+    private static boolean wasWindowRemoved(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
+        return prefs.getBoolean(WAS_WINDOW_REMOVED_KEY, false);
+    }
+
+    private static void setPreferenceForWindowIsRemoved(Context context, boolean isRemoved) {
+        SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
+        prefs.edit().putBoolean(WAS_WINDOW_REMOVED_KEY, isRemoved).apply();
+    }
+
     public static void startFloatingService(Context context) {
         startFloatingService(context, false);
     }
 
     // TODO(민성): SharedPreference 에서 플로팅을 사용하기로 한 경우만 띄우도록 하기
     public static void startFloatingService(Context context, boolean forceStart) {
+        if (!forceStart && wasWindowRemoved(context)) return;
+
         Map<String, Object> data = NowPlayingPlugin.extractFieldsFor(
                 context,
                 NowPlayingListenerService.lastToken,
@@ -432,19 +454,21 @@ public class FloatingWindowService extends Service implements View.OnClickListen
         final String artist = (String) NowPlayingPlugin.trackData.get("artist");
         if (artist == null || artist.isEmpty()) return;
 
-        if (!forceStart) {
-            SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
-            final String currentTitle = prefs.getString(TITLE_KEY, "");
-            final String currentArtist = prefs.getString(ARTIST_KEY, "");
-
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString(TITLE_KEY, title);
-            editor.putString(ARTIST_KEY, artist);
-            editor.apply();
-
-            if (currentTitle.equals(title) && currentArtist.equals(artist))
-                return;
+        if (forceStart) {
+            setPreferenceForWindowIsRemoved(context, false);
         }
+
+        SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFS_KEY, Context.MODE_PRIVATE);
+        final String currentTitle = prefs.getString(TITLE_KEY, "");
+        final String currentArtist = prefs.getString(ARTIST_KEY, "");
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(TITLE_KEY, title);
+        editor.putString(ARTIST_KEY, artist);
+        editor.apply();
+
+        if (!forceStart && currentTitle.equals(title) && currentArtist.equals(artist))
+            return;
 
         invokeMethod(context, title, artist, forceStart);
     }
