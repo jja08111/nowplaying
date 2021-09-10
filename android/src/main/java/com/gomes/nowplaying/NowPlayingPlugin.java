@@ -97,7 +97,12 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler {
                 result.success(true);
                 break;
             case COMMAND_SHOW_FLOATING_WINDOW:
-                FloatingWindowService.startFloatingService(context, true);
+                try {
+                    FloatingWindowService.startFloatingService(context, true);
+                } catch (Exception e) {
+                    result.error("Failed to start service", e.getMessage(), e.toString());
+                    break;
+                }
                 result.success(true);
                 break;
             case COMMAND_TRACK:
@@ -209,8 +214,8 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler {
 
     public static Map<String, Object> extractFieldsFor(Context context, MediaSession.Token token, Icon icon) {
         final MediaController controller = new MediaController(context, token);
-
         final MediaMetadata mediaMetadata = controller.getMetadata();
+
         if (mediaMetadata == null) return null;
 
         final String id = deriveId(mediaMetadata);

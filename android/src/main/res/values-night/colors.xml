@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primaryColor">#121212</color>
+    <color name="onPrimaryColor">#FFFFFF</color>
+    <color name="dividerColor">#61FFFFFF</color>
+</resources>

@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
@@ -24,10 +25,12 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import androidx.cardview.widget.CardView;
 import androidx.core.app.NotificationCompat;
 
 import com.gomes.NowPlaying.R;
@@ -68,6 +71,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     private View mFloatingView;
     private View collapsedView;
     private View expandedView;
+    private boolean wasDarkTheme;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -77,6 +81,38 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     @Override
     public void onCreate() {
         createNotificationChannel();
+        wasDarkTheme = (this.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        boolean isDark = isDarkTheme(newConfig);
+        if (wasDarkTheme != isDark) {
+            wasDarkTheme = isDark;
+            updateColorTheme();
+        }
+    }
+
+    private boolean isDarkTheme(Configuration config) {
+        return (config.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private void updateColorTheme() {
+        CardView cardView = mFloatingView.findViewById(R.id.layoutExpanded);
+        ImageButton closeButton = mFloatingView.findViewById(R.id.expanded_close_button);
+        ImageButton fullscreenButton = mFloatingView.findViewById(R.id.expanded_fullscreen_button);
+        ImageButton collapseButton = mFloatingView.findViewById(R.id.expanded_collapse_button);
+        TextView textView = mFloatingView.findViewById(R.id.expanded_textView);
+        View divider = mFloatingView.findViewById(R.id.expanded_divider);
+
+        cardView.setCardBackgroundColor(getColor(R.color.primaryColor));
+        closeButton.setImageTintList(getColorStateList(R.color.onPrimaryColor));
+        fullscreenButton.setImageTintList(getColorStateList(R.color.onPrimaryColor));
+        collapseButton.setImageTintList(getColorStateList(R.color.onPrimaryColor));
+        textView.setTextColor(getColor(R.color.onPrimaryColor));
+        divider.setBackgroundColor(getColor(R.color.dividerColor));
     }
 
     /**
@@ -420,7 +456,7 @@ public class FloatingWindowService extends Service implements View.OnClickListen
 
     /**
      * 사용자가 명시적으로 닫기 버튼 혹은 서비스 종료 버튼을 눌렀었던 경우 `true`를 반환한다.
-     *
+     * <p>
      * 또한 초기에 값이 설정되지 않은 경우 `true`를 반환한다.
      */
     private static boolean wasWindowRemoved(Context context) {
@@ -434,12 +470,21 @@ public class FloatingWindowService extends Service implements View.OnClickListen
     }
 
     public static void startFloatingService(Context context) {
-        startFloatingService(context, false);
+        try {
+            startFloatingService(context, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // TODO(민성): SharedPreference 에서 플로팅을 사용하기로 한 경우만 띄우도록 하기
-    public static void startFloatingService(Context context, boolean forceStart) {
-        if (!forceStart && wasWindowRemoved(context)) return;
+    public static void startFloatingService(Context context, boolean forceStart) throws Exception {
+        if (NowPlayingListenerService.lastToken == null
+                || NowPlayingListenerService.lastIcon == null)
+            throw new Exception("음악 정보가 없습니다. 플레이어에서 음악을 재생해주세요.");
+
+        if ((!forceStart && wasWindowRemoved(context)))
+            return;
 
         Map<String, Object> data = NowPlayingPlugin.extractFieldsFor(
                 context,
